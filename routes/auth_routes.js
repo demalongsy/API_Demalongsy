@@ -15,8 +15,11 @@ router.post('/register', async (req, res) => {
     })
 
     if (collectData.length == 0) {
-      await db.collection('users').add(req.body)
-      res.status(201).json({ msg: 'Creation succesful' })
+      await db.collection('users').add({name: "Anonymous", ...req.body})
+      let token = jwt.sign({ username }, config.key, {
+        expiresIn: '30 days',
+      })
+      res.status(201).json({ token: token, msg: 'success' })
     } else {
       res.status(400).json({ msg: 'Username already exists' })
     }
@@ -25,7 +28,7 @@ router.post('/register', async (req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body
 
