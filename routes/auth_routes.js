@@ -1,13 +1,15 @@
 const router = require('express').Router()
 const { db } = require('../firebase')
 const config = require('../config')
-const middleware = require('../middleware') 
+const middleware = require('../middleware')
 const jwt = require('jsonwebtoken')
 
 router.post('/register', async (req, res) => {
   try {
     const { username } = req.body
     let collectData = []
+    let liked = []
+
     const snapshot = await db.collection('users').where('username', '==', username).get()
 
     snapshot.forEach((val) => {
@@ -15,7 +17,7 @@ router.post('/register', async (req, res) => {
     })
 
     if (collectData.length == 0) {
-      await db.collection('users').add({name: "Anonymous", ...req.body})
+      await db.collection('users').add({ name: 'Anonymous', ...req.body, liked: liked })
       let token = jwt.sign({ username }, config.key, {
         expiresIn: '30 days',
       })
