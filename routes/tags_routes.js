@@ -21,9 +21,9 @@ router.post('/', middleware.checkToken, async (req, res) => {
   try {
     const data = req.body
 
-    const userRef = db.collection('tags')
+    const tagRef = db.collection('tags')
 
-    const res = await userRef.add(data)
+    const res = await tagRef.add(data)
 
     res.status(201).json({ msg: 'Creation successful' })
   } catch (error) {

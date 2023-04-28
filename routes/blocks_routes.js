@@ -2,9 +2,8 @@ var router = require('express').Router()
 const { db } = require('../firebase')
 const middleware = require('../middleware')
 
-
-router.get('/', async (req, res)=> {
-  try{
+router.get('/', async (req, res) => {
+  try {
     let result = []
 
     const getData = await db.collection('blocks').get()
@@ -14,7 +13,109 @@ router.get('/', async (req, res)=> {
     })
 
     res.status(200).json({ data: result })
-  } catch(error){
+  } catch (error) {
+    res.send(error)
+  }
+})
+
+router.get('/trending', async (req, res) => {
+  try {
+    const { user_id } = req.query
+    let allPosts = []
+    let finalResult = []
+    let result
+    let num = 0
+
+    const getData = await db.collection('tags').orderBy('num_mention', 'desc').get()
+
+    await Promise.all(
+      getData.docs.map(async (val) => {
+        const getPost = await db.collection('blocks').where('tags', 'array-contains', val.data().tags).get()
+
+        getPost.forEach((obj) => {
+          result = obj.data()
+          result.id = obj.id
+          allPosts.push(result)
+        })
+      })
+    )
+
+    allPosts.map((val) => {
+      num = 0
+      finalResult.map((obj) => {
+        if (obj.id === val.id) {
+          num += 1
+        }
+      })
+
+      if (num < 1) {
+        result = val
+        if (val.liked.find((res) => res === user_id)) {
+          val.isLiked = true
+        } else {
+          val.isLiked = false
+        }
+        finalResult.push(val)
+      }
+    })
+
+    res.status(200).json({ data: finalResult })
+  } catch (error) {
+    res.send(error)
+  }
+})
+
+router.get('/foryou', async (req, res) => {
+  try {
+    const { user_id } = req.query
+    let allPosts = []
+    let result
+    let num = 0
+
+    const getUser = await db.collection('users').doc(user_id).get()
+    const selectedTags = getUser.data().tags
+
+    const getPosts = await db.collection('blocks').where('tags', 'array-contains-any', selectedTags).get()
+
+    getPosts.forEach((val) => {
+      result = val.data()
+      result.id = val.id
+      allPosts.push(result)
+    })
+
+    const getOtherPost = await db.collection('blocks').get()
+
+    getOtherPost.forEach((val) => {
+      num = 0
+      allPosts.map((obj) => {
+        if (val.id === obj.id) {
+          num = num + 1
+        }
+      })
+
+      if (num == 0) {
+        result = val.data()
+        result.id = val.id
+        allPosts.push(result)
+      }
+    })
+
+    allPosts.map((val) => {
+      if (val.liked.length > 0) {
+        val.liked.map((obj) => {
+          if (obj === user_id) {
+            val.isLiked = true
+          } else {
+            val.isLiked = false
+          }
+        })
+      } else {
+        val.isLiked = false
+      }
+    })
+
+    res.status(200).json({ data: allPosts })
+  } catch (error) {
     res.send(error)
   }
 })
@@ -22,18 +123,27 @@ router.get('/', async (req, res)=> {
 router.get('/view/:block_id', middleware.checkToken, async (req, res) => {
   try {
     const { block_id } = req.params
-    const { username } = req.query
+    const { author_id } = req.query
     let result
+    let isLiked = false
 
     const getBlock = await db.collection('blocks').doc(block_id).get()
+    result = getBlock.data()
 
-    if (getBlock.data().username === username) {
-      result = getBlock.data()
+    if (getBlock.data().author_id === author_id) {
       result.isOwner = true
     } else {
-      result = getBlock.data()
       result.isOwner = false
     }
+
+    if (getBlock.data().liked.length > 0) {
+      if (getBlock.data().liked.find((val) => val.toString() === author_id)) {
+        isLiked = true
+      } else {
+        isLiked = false
+      }
+    }
+    result.isLiked = isLiked
     result.block_id = block_id
 
     res.status(200).json({ data: result })

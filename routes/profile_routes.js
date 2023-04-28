@@ -1,6 +1,7 @@
 var router = require('express').Router()
 const { db } = require('../firebase')
 const middleware = require('../middleware')
+const admin = require('firebase-admin')
 
 router.get('/', async (req, res) => {
   try {
@@ -136,24 +137,28 @@ router.get('/viewprofile/liked', middleware.checkToken, async (req, res) => {
   }
 })
 
+router.patch('/selectedTags/:user_id', middleware.checkToken, async (req, res) => {
+  try {
+    const { user_id } = req.params
+    const { tags } = req.body
+
+    const updatedata = await db.collection('users').doc(user_id).update({ tags: tags })
+
+    res.status(200).json({ msg: 'Data successfully updated.' })
+  } catch (error) {
+    res.send(error)
+  }
+})
+
 router.patch('/liked', middleware.checkToken, async (req, res) => {
   try {
     const { block_id, user_id } = req.query
-    let likes_blocks = []
-    let likes_user = []
 
     const blocksRef = db.collection('blocks').doc(block_id)
-    const getBlocks = await blocksRef.get()
-    likes_blocks = getBlocks.data().liked
-    likes_blocks.push(user_id)
+    await blocksRef.update({ liked: admin.firestore.FieldValue.arrayUnion(user_id) })
 
     const userRef = db.collection('users').doc(user_id)
-    const getUser = await userRef.get()
-    likes_user = getUser.data().liked
-    likes_user.push(block_id)
-
-    await blocksRef.update({ liked: likes_blocks })
-    await userRef.update({ liked: likes_user })
+    await userRef.update({ liked: admin.firestore.FieldValue.arrayUnion(block_id) })
 
     res.status(200).json({ msg: 'Data successfully updated.' })
   } catch (error) {
@@ -164,21 +169,12 @@ router.patch('/liked', middleware.checkToken, async (req, res) => {
 router.patch('/unliked', middleware.checkToken, async (req, res) => {
   try {
     const { block_id, user_id } = req.query
-    let likes_blocks = []
-    let likes_user = []
 
     const blocksRef = db.collection('blocks').doc(block_id)
-    const getBlocks = await blocksRef.get()
-    likes_blocks = getBlocks.data().liked
-    likes_blocks.pop(user_id)
+    await blocksRef.update({ liked: admin.firestore.FieldValue.arrayRemove(user_id) })
 
     const userRef = db.collection('users').doc(user_id)
-    const getUser = await userRef.get()
-    likes_user = getUser.data().liked
-    likes_user.pop(block_id)
-
-    await blocksRef.update({ liked: likes_blocks })
-    await userRef.update({ liked: likes_user })
+    await userRef.update({ liked: admin.firestore.FieldValue.arrayRemove(block_id) })
 
     res.status(200).json({ msg: 'Data successfully updated.' })
   } catch (error) {
