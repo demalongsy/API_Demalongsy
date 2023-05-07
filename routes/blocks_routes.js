@@ -123,21 +123,21 @@ router.get('/foryou', async (req, res) => {
 router.get('/view/:block_id', middleware.checkToken, async (req, res) => {
   try {
     const { block_id } = req.params
-    const { author_id } = req.query
+    const { user_id } = req.query
     let result
     let isLiked = false
 
     const getBlock = await db.collection('blocks').doc(block_id).get()
     result = getBlock.data()
 
-    if (getBlock.data().author_id === author_id) {
+    if (getBlock.data().author_id === user_id) {
       result.isOwner = true
     } else {
       result.isOwner = false
     }
 
     if (getBlock.data().liked.length > 0) {
-      if (getBlock.data().liked.find((val) => val.toString() === author_id)) {
+      if (getBlock.data().liked.find((val) => val.toString() === user_id)) {
         isLiked = true
       } else {
         isLiked = false
@@ -152,18 +152,42 @@ router.get('/view/:block_id', middleware.checkToken, async (req, res) => {
   }
 })
 
-router.get('/related', middleware.checkToken, async (req, res) => {
+router.get('/related', async (req, res) => {
   try {
-    const { tags } = req.query
     let allPost = []
-    let allTags
+    let result
 
-    allTags = tags.split(',')
+    const { tags, user_id } = req.query
+
+    let removeLeft = tags.replace('[', '')
+    let removeRight = removeLeft.replace(']', '')
+    let allTags = removeRight.split(',')
+
     const getData = await db.collection('blocks').where('tags', 'array-contains-any', allTags).get()
 
     getData.forEach((val) => {
-      allPost.push(val.data())
+      if (!allPost.find((obj) => val.id === obj.id)) {
+        result = val.data()
+        result.id = val.id
+
+        allPost.push(result)
+      }
     })
+    allPost.map((val) => {
+      if (val.liked.length > 0) {
+        val.liked.map((obj) => {
+          if (obj === user_id) {
+            val.isLiked = true
+          } else {
+            val.isLiked = false
+          }
+        })
+      } else {
+        val.isLiked = false
+      }
+    })
+
+    console.log(allPost)
 
     res.status(200).json({ data: allPost })
   } catch (error) {

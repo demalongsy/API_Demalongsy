@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-router.get('/:username', middleware.checkToken, async (req, res) => {
+router.get('/:username', async (req, res) => {
   try {
     const { username } = req.params
     const { another_username } = req.query
@@ -46,16 +46,22 @@ router.get('/:username', middleware.checkToken, async (req, res) => {
       result.user_id = val.id
     })
 
+    if (another_username === username) {
+      result.isOwner = true
+    } else {
+      result.isOwner = false
+    }
+
     result.num_postes = num_postes
     result.num_was_liked = num_was_liked
 
-    res.status(200).json({ data: result })
+    res.status(200).json(result)
   } catch (error) {
     res.send(error)
   }
 })
 
-router.get('/viewprofile/post', middleware.checkToken, async (req, res) => {
+router.get('/viewprofile/post', async (req, res) => {
   try {
     const { user_id, another_id } = req.query
     let allPost = []
@@ -89,7 +95,7 @@ router.get('/viewprofile/post', middleware.checkToken, async (req, res) => {
   }
 })
 
-router.get('/viewprofile/liked', middleware.checkToken, async (req, res) => {
+router.get('/viewprofile/liked', async (req, res) => {
   try {
     const { user_id, another_id } = req.query
     let allPost = []
