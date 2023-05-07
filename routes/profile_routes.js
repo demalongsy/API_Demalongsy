@@ -27,43 +27,29 @@ router.get('/:username', middleware.checkToken, async (req, res) => {
     let num_was_liked = 0
     let num_postes = 0
 
-    if (another_username) {
-      const getPosts = await db.collection('blocks').where('username', '==', another_username).get()
-      getPosts.forEach((val) => {
-        num_postes += 1
-        num_was_liked += val.data().liked.length
-      })
+    const getPosts = await db
+      .collection('blocks')
+      .where('username', '==', another_username ?? username)
+      .get()
+    getPosts.forEach((val) => {
+      num_postes += 1
+      num_was_liked += val.data().liked.length
+    })
 
-      const getData = await db.collection('users').where('username', '==', another_username).get()
+    const getData = await db
+      .collection('users')
+      .where('username', '==', another_username ?? username)
+      .get()
 
-      getData.forEach((val) => {
-        result = val.data()
-        result.user_id = val.id
-      })
+    getData.forEach((val) => {
+      result = val.data()
+      result.user_id = val.id
+    })
 
-      result.num_postes = num_postes
-      result.num_was_liked = num_was_liked
+    result.num_postes = num_postes
+    result.num_was_liked = num_was_liked
 
-      res.status(200).json({ data: result })
-    } else {
-      const getPosts = await db.collection('blocks').where('username', '==', username).get()
-      getPosts.forEach((val) => {
-        num_postes += 1
-        num_liked += val.data().liked.length
-      })
-
-      const getData = await db.collection('users').where('username', '==', username).get()
-
-      getData.forEach((val) => {
-        result = val.data()
-        result.user_id = val.id
-      })
-
-      result.num_postes = num_postes
-      result.num_liked = num_liked
-
-      res.status(200).json({ data: result })
-    }
+    res.status(200).json({ data: result })
   } catch (error) {
     res.send(error)
   }
@@ -141,8 +127,6 @@ router.patch('/selectedTags/:user_id', middleware.checkToken, async (req, res) =
   try {
     const { user_id } = req.params
     const { tags } = req.body
-
-    
 
     const updatedata = await db.collection('users').doc(user_id).update({ tags: tags })
 
