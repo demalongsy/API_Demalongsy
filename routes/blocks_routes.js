@@ -187,8 +187,6 @@ router.get('/related', async (req, res) => {
       }
     })
 
-    console.log(allPost)
-
     res.status(200).json({ data: allPost })
   } catch (error) {
     res.send(error)
