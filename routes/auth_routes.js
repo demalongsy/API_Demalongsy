@@ -9,6 +9,7 @@ router.post('/register', async (req, res) => {
     const { username } = req.body
     let collectData = []
     let liked = []
+    let result
 
     const snapshot = await db.collection('users').where('username', '==', username).get()
 
@@ -17,11 +18,12 @@ router.post('/register', async (req, res) => {
     })
 
     if (collectData.length == 0) {
-      await db.collection('users').add({ name: 'Anonymous', ...req.body, liked: liked })
+      result = await db.collection('users').add({ name: 'Anonymous', ...req.body, liked: liked })
       let token = jwt.sign({ username }, config.key, {
         expiresIn: '30 days',
       })
-      res.status(201).json({ token: token, msg: 'success' })
+
+      res.status(201).json({ token: token, msg: 'success', user_id: result.id })
     } else {
       res.status(400).json({ msg: 'Username already exists' })
     }
@@ -33,19 +35,21 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body
+    let user_id
 
     let collectdData = []
     const userData = await db.collection('users').where('username', '==', username).where('password', '==', password).get()
 
     userData.forEach((val) => {
       collectdData.push(val.data())
+      user_id = val.id
     })
 
     if (collectdData.length > 0) {
       let token = jwt.sign({ username }, config.key, {
         expiresIn: '30 days',
       })
-      res.status(201).json({ token: token, msg: 'success' })
+      res.status(201).json({ token: token, msg: 'success', user_id: user_id })
     } else {
       res.status(403).json({ msg: 'Username or Password is incorrect' })
     }

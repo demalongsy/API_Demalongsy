@@ -142,6 +142,8 @@ router.patch('/selectedTags/:user_id', middleware.checkToken, async (req, res) =
     const { user_id } = req.params
     const { tags } = req.body
 
+    
+
     const updatedata = await db.collection('users').doc(user_id).update({ tags: tags })
 
     res.status(200).json({ msg: 'Data successfully updated.' })
