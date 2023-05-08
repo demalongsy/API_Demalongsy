@@ -55,6 +55,8 @@ router.get('/:username', async (req, res) => {
     result.num_postes = num_postes
     result.num_was_liked = num_was_liked
 
+   
+
     res.status(200).json(result)
   } catch (error) {
     res.send(error)

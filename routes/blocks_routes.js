@@ -120,7 +120,7 @@ router.get('/foryou', async (req, res) => {
   }
 })
 
-router.get('/view/:block_id', middleware.checkToken, async (req, res) => {
+router.get('/view/:block_id', async (req, res) => {
   try {
     const { block_id } = req.params
     const { user_id } = req.query
@@ -146,7 +146,7 @@ router.get('/view/:block_id', middleware.checkToken, async (req, res) => {
     result.isLiked = isLiked
     result.block_id = block_id
 
-    res.status(200).json({ data: result })
+    res.status(200).json(result)
   } catch (error) {
     res.send(error)
   }
