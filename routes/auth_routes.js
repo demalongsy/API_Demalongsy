@@ -8,7 +8,7 @@ router.post('/register', async (req, res) => {
   try {
     const { username } = req.body
     let collectData = []
-    let liked = []
+
     let result
 
     const snapshot = await db.collection('users').where('username', '==', username).get()
@@ -18,7 +18,7 @@ router.post('/register', async (req, res) => {
     })
 
     if (collectData.length == 0) {
-      result = await db.collection('users').add({ name: 'Anonymous', ...req.body, liked: liked })
+      result = await db.collection('users').add({ name: 'Anonymous', ...req.body })
       let token = jwt.sign({ username }, config.key, {
         expiresIn: '30 days',
       })

@@ -8,20 +8,13 @@ router.get('/viewcomment/:block_id', middleware.checkToken, async (req, res) => 
     let allComments = []
     let result = {}
 
-    const getPost = await db.collection('blocks').doc(block_id).get()
+    const getData = await db.collection('comments').where('reply_block_id', '==', block_id).orderBy('date', 'desc').get()
 
-    if (getPost.exists) {
-      result = getPost.data()
-      const getData = await db.collection('comments').where('reply_block_id', '==', block_id).get()
+    getData.forEach((val) => {
+      allComments.push(val.data())
+    })
 
-      getData.forEach((val) => {
-        allComments.push(val.data())
-      })
-    } else {
-      result = getPost.data()
-    }
-
-    result.comments = allComments
+    result.data = allComments.sort()
 
     res.status(200).json(result)
   } catch (error) {

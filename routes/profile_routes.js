@@ -149,9 +149,6 @@ router.patch('/liked', middleware.checkToken, async (req, res) => {
     const blocksRef = db.collection('blocks').doc(block_id)
     await blocksRef.update({ liked: admin.firestore.FieldValue.arrayUnion(user_id) })
 
-    const userRef = db.collection('users').doc(user_id)
-    await userRef.update({ liked: admin.firestore.FieldValue.arrayUnion(block_id) })
-
     res.status(200).json({ msg: 'Data successfully updated.' })
   } catch (error) {
     res.send(error)
@@ -164,9 +161,6 @@ router.patch('/unliked', middleware.checkToken, async (req, res) => {
 
     const blocksRef = db.collection('blocks').doc(block_id)
     await blocksRef.update({ liked: admin.firestore.FieldValue.arrayRemove(user_id) })
-
-    const userRef = db.collection('users').doc(user_id)
-    await userRef.update({ liked: admin.firestore.FieldValue.arrayRemove(block_id) })
 
     res.status(200).json({ msg: 'Data successfully updated.' })
   } catch (error) {

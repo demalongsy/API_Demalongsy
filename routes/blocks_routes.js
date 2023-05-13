@@ -232,6 +232,9 @@ router.delete('/:block_id', middleware.checkToken, async (req, res) => {
         await userRef.update({ liked: admin.firestore.FieldValue.arrayRemove(block_id) })
       }
     })
+   
+
+    
 
     const dateData = await db.collection('blocks').doc(block_id).delete()
 
