@@ -1,6 +1,7 @@
 var router = require('express').Router()
 const { db } = require('../firebase')
 const middleware = require('../middleware')
+const admin = require('firebase-admin')
 
 router.get('/', async (req, res) => {
   try {
@@ -152,11 +153,12 @@ router.get('/view/:block_id', async (req, res) => {
   }
 })
 
-router.get('/related', async (req, res) => {
+router.get('/related/:block_id', async (req, res) => {
   try {
     let allPost = []
     let result
 
+    const { block_id } = req.params
     const { tags, user_id } = req.query
 
     let removeLeft = tags.replace('[', '')
@@ -166,7 +168,7 @@ router.get('/related', async (req, res) => {
     const getData = await db.collection('blocks').where('tags', 'array-contains-any', allTags).get()
 
     getData.forEach((val) => {
-      if (!allPost.find((obj) => val.id === obj.id)) {
+      if (val.id !== block_id) {
         result = val.data()
         result.id = val.id
 
@@ -221,6 +223,15 @@ router.post('/create', middleware.checkToken, async (req, res) => {
 router.delete('/:block_id', middleware.checkToken, async (req, res) => {
   try {
     const { block_id } = req.params
+
+    const dataUsers = await db.collection('users').where('liked', 'array-contains', block_id).get()
+
+    dataUsers.forEach(async (val) => {
+      if (val.id) {
+        const userRef = db.collection('users').doc(val.id)
+        await userRef.update({ liked: admin.firestore.FieldValue.arrayRemove(block_id) })
+      }
+    })
 
     const dateData = await db.collection('blocks').doc(block_id).delete()
 
