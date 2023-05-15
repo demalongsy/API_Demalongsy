@@ -2,6 +2,10 @@ var router = require('express').Router()
 const { db } = require('../firebase')
 const middleware = require('../middleware')
 const admin = require('firebase-admin')
+const multer = require('multer')
+
+const bucket = admin.storage().bucket()
+const upload = multer()
 
 router.get('/', async (req, res) => {
   try {
@@ -168,51 +172,115 @@ router.patch('/unliked', middleware.checkToken, async (req, res) => {
   }
 })
 
-router.patch('/edit/:user_id', middleware.checkToken, async (req, res) => {
+router.patch('/edit/:user_id', upload.single('imgAuthor'), middleware.checkToken, async (req, res) => {
   try {
     const { user_id } = req.params
-    const data = req.body
+
     let allPostId = []
     let allCommentId = []
+    let updateData = {}
     let updatePost = {}
 
-    const updateData = await db.collection('users').doc(user_id).update(data)
-
-    const dataPost = await db.collection('blocks').where('author_id', '==', user_id).get()
-
-    const dataComments = await db.collection('comments').where('author_id', '==', user_id).get()
-
-    dataPost.forEach((val) => {
-      allPostId.push(val.id)
-    })
-
-    dataComments.forEach((val) => {
-      allCommentId.push(val.id)
-    })
-
-    if (data.name) {
-      updatePost.username = data.name
-    }
-    if (data.images) {
-      updatePost.imgAuthor = data.images
+    if (req.body.name) {
+      updateData.name = req.body.name
+      updatePost.name = req.body.name
     }
 
-    if (allPostId.length > 0) {
-      allPostId.map(async (val) => {
-        await db.collection('blocks').doc(val).update(updatePost)
+    if (req.body.bio) {
+      updateData.bio = req.body.bio
+    }
+
+    if (req.file) {
+      const file = req.file
+      const destinationPath = `profile/${file.originalname}`
+
+      const fileBuffer = file.buffer
+      const contentType = file.mimetype
+
+      const fileUpload = bucket.file(destinationPath)
+
+      // Create a write stream for uploading the file
+      const stream = fileUpload.createWriteStream({
+        metadata: {
+          contentType: contentType,
+        },
       })
-    }
 
-    if (allCommentId.length > 0) {
-      allCommentId.map(async (val) => {
-        await db.collection('comments').doc(val).update(updatePost)
+      // Handle stream events
+      stream.on('error', (error) => {
+        console.error('Error uploading image:', error)
+        //res.status(500).send('An error occurred while uploading the image.')
       })
-    }
 
-    res.status(200).json({ msg: 'Data successfully updated.' })
+      stream.on('finish', async () => {
+        const imgAuthor = await fileUpload.getSignedUrl({
+          action: 'read',
+          expires: '03-01-2500',
+          // Set an appropriate expiration date
+        })
+
+        updateData.imgAuthor = imgAuthor[0]
+        updatePost.imgAuthor = imgAuthor[0]
+
+        await db.collection('users').doc(user_id).update(updateData)
+
+        const dataPost = await db.collection('blocks').where('author_id', '==', user_id).get()
+        const dataComments = await db.collection('comments').where('author_id', '==', user_id).get()
+
+        dataPost.forEach((val) => {
+          allPostId.push(val.id)
+        })
+
+        dataComments.forEach((val) => {
+          allCommentId.push(val.id)
+        })
+
+        if (allPostId.length > 0) {
+          allPostId.map(async (val) => {
+            await db.collection('blocks').doc(val).update(updatePost)
+          })
+        }
+
+        if (allCommentId.length > 0) {
+          allCommentId.map(async (val) => {
+            await db.collection('comments').doc(val).update(updatePost)
+          })
+        }
+
+        res.status(200).json({ msg: 'Data successfully updated.' })
+      })
+
+      stream.end(fileBuffer)
+    } else {
+      await db.collection('users').doc(user_id).update(updateData)
+
+      const dataPost = await db.collection('blocks').where('author_id', '==', user_id).get()
+      const dataComments = await db.collection('comments').where('author_id', '==', user_id).get()
+
+      dataPost.forEach((val) => {
+        allPostId.push(val.id)
+      })
+
+      dataComments.forEach((val) => {
+        allCommentId.push(val.id)
+      })
+
+      if (allPostId.length > 0) {
+        allPostId.map(async (val) => {
+          await db.collection('blocks').doc(val).update(updatePost)
+        })
+      }
+
+      if (allCommentId.length > 0) {
+        allCommentId.map(async (val) => {
+          await db.collection('comments').doc(val).update(updatePost)
+        })
+      }
+
+      res.status(200).json({ msg: 'Data successfully updated.' })
+    }
   } catch (error) {
     res.send(error)
   }
 })
-
 module.exports = router
