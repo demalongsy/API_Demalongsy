@@ -175,7 +175,7 @@ router.patch('/unliked', middleware.checkToken, async (req, res) => {
 router.patch('/edit/:user_id', upload.single('imgAuthor'), middleware.checkToken, async (req, res) => {
   try {
     const { user_id } = req.params
-
+    const date = new Date()
     let allPostId = []
     let allCommentId = []
     let updateData = {}
@@ -192,32 +192,32 @@ router.patch('/edit/:user_id', upload.single('imgAuthor'), middleware.checkToken
 
     if (req.file) {
       const file = req.file
-      const destinationPath = `profile/${file.originalname}`
+
+      const destinationPath = `profile/${user_id}_${date.getDate()}${
+        date.getUTCMonth() + 1
+      }${date.getFullYear()}${date.getHours()}${date.getMinutes()}${date.getSeconds()}${Math.floor(Math.random() * 10)}${file.originalname}`
 
       const fileBuffer = file.buffer
       const contentType = file.mimetype
 
       const fileUpload = bucket.file(destinationPath)
 
-      // Create a write stream for uploading the file
       const stream = fileUpload.createWriteStream({
         metadata: {
           contentType: contentType,
         },
       })
 
-      // Handle stream events
       stream.on('error', (error) => {
         console.error('Error uploading image:', error)
-        //res.status(500).send('An error occurred while uploading the image.')
       })
 
       stream.on('finish', async () => {
         const imgAuthor = await fileUpload.getSignedUrl({
           action: 'read',
           expires: '03-01-2500',
-          // Set an appropriate expiration date
         })
+        console.log(imgAuthor)
 
         updateData.imgAuthor = imgAuthor[0]
         updatePost.imgAuthor = imgAuthor[0]

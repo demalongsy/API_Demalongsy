@@ -110,13 +110,12 @@ router.get('/foryou', async (req, res) => {
 
     getOtherPost.forEach((val) => {
       num = 0
-      allPosts.map((obj) => {
-        if (val.id === obj.id) {
-          num = num + 1
-        }
-      })
 
-      if (num == 0) {
+      if (allPosts.find((obj) => obj.id === val.id)) {
+        num += 1
+      }
+
+      if (num < 1) {
         result = val.data()
         result.id = val.id
         allPosts.push(result)
@@ -125,13 +124,11 @@ router.get('/foryou', async (req, res) => {
 
     allPosts.map((val) => {
       if (val.liked.length > 0) {
-        val.liked.map((obj) => {
-          if (obj === user_id) {
-            val.isLiked = true
-          } else {
-            val.isLiked = false
-          }
-        })
+        if (val.liked.find((obj) => obj === user_id)) {
+          val.isLiked = true
+        } else {
+          val.isLiked = false
+        }
       } else {
         val.isLiked = false
       }
@@ -183,8 +180,8 @@ router.get('/related/:block_id', async (req, res) => {
     const { block_id } = req.params
     const { tags, user_id } = req.query
 
-    let removeLeft = tags.replace('[', '')
-    let removeRight = removeLeft.replace(']', '')
+    let removeRight = tags.slice(1, tags.length - 1)
+
     let allTags = removeRight.split(',')
 
     const getData = await db.collection('blocks').where('tags', 'array-contains-any', allTags).get()
@@ -219,21 +216,21 @@ router.get('/related/:block_id', async (req, res) => {
 
 router.post('/create', upload.array('images', 5), middleware.checkToken, async (req, res) => {
   try {
-    // const { tags } = req.body
     const date = new Date()
     let getTags
     let num_mention = 0
     let createData = {}
     let images = []
+    let allTags = []
 
-    let removeLeft = req.body.tags.replace('[', '')
-    let removeRight = removeLeft.replace(']', '')
-    let allTags = removeRight.split(',')
+    allTags = req.body.tags.slice(1, req.body.tags.length - 1).split(',')
 
     const files = req.files
+    const destinationPath = `post/create_by_${req.body.name}_${date.getDate()}${
+      date.getUTCMonth() + 1
+    }${date.getFullYear()}${date.getHours()}${date.getMinutes()}${date.getSeconds()}${Math.floor(Math.random() * 10)}${files.originalname}`
 
     const uploadPromises = files.map((file) => {
-      const destinationPath = `post/${file.originalname}`
       const fileBuffer = file.buffer
       const contentType = file.mimetype
 
@@ -260,9 +257,6 @@ router.post('/create', upload.array('images', 5), middleware.checkToken, async (
               action: 'read',
               expires: '03-01-2500', // Set an appropriate expiration date
             })
-
-            // Perform any necessary operations with the download URL
-            //console.log('Download URL:', downloadUrl)
 
             resolve(downloadUrl)
           } catch (error) {
@@ -306,7 +300,7 @@ router.post('/create', upload.array('images', 5), middleware.checkToken, async (
           })
         })
 
-        res.status(200).send('Images uploaded successfully!')
+        res.status(200).json({ msg: 'success' })
       })
       .catch((error) => {
         console.error('Error uploading images:', error)
@@ -323,17 +317,23 @@ router.delete('/:block_id', middleware.checkToken, async (req, res) => {
 
     const dataUsers = await db.collection('users').where('liked', 'array-contains', block_id).get()
 
-    dataUsers.forEach(async (val) => {
+    const updatePromises = []
+    dataUsers.forEach((val) => {
       if (val.id) {
         const userRef = db.collection('users').doc(val.id)
-        await userRef.update({ liked: admin.firestore.FieldValue.arrayRemove(block_id) })
+        const updatePromise = userRef.update({ liked: admin.firestore.FieldValue.arrayRemove(block_id) })
+        updatePromises.push(updatePromise)
       }
     })
 
-    const dateData = await db.collection('blocks').doc(block_id).delete()
+    await Promise.all(updatePromises)
 
-    res.status(200).json({ msg: 'Data succesfullt deleted' })
-  } catch (error) {}
+    await db.collection('blocks').doc(block_id).delete()
+
+    res.status(200).json({ msg: 'Data successfully deleted' })
+  } catch (error) {
+    res.status(500).json({ error: 'An error occurred while deleting the data' })
+  }
 })
 
 module.exports = router
