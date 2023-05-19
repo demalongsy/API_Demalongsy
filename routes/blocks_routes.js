@@ -214,7 +214,7 @@ router.get('/related/:block_id', async (req, res) => {
   }
 })
 
-router.post('/create', upload.array('images', 5), middleware.checkToken, async (req, res) => {
+router.post('/create', upload.array('images', 6), middleware.checkToken, async (req, res) => {
   try {
     const date = new Date()
     let getTags
