@@ -15,7 +15,7 @@ const blockRoutes = require('./routes/blocks_routes')
 
 app.use(express.json())
 app.use(cors())
-app.use(bodyParser.json())
+app.use(bodyParser.json({ limit: '10mb' }))
 
 app.use('/auth', authRoutes)
 app.use('/tags', tagsRoutes)
