@@ -217,7 +217,6 @@ router.patch('/edit/:user_id', upload.single('imgAuthor'), middleware.checkToken
           action: 'read',
           expires: '03-01-2500',
         })
-        console.log(imgAuthor)
 
         updateData.imgAuthor = imgAuthor[0]
         updatePost.imgAuthor = imgAuthor[0]

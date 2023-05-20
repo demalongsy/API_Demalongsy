@@ -219,6 +219,7 @@ router.post('/create', upload.array('images', 6), middleware.checkToken, async (
     const date = new Date()
     let getTags
     let num_mention = 0
+    let int = 0
     let createData = {}
     let images = []
     let allTags = []
@@ -226,11 +227,11 @@ router.post('/create', upload.array('images', 6), middleware.checkToken, async (
     allTags = req.body.tags.slice(1, req.body.tags.length - 1).split(',')
 
     const files = req.files
-    const destinationPath = `post/create_by_${req.body.name}_${date.getDate()}${
-      date.getUTCMonth() + 1
-    }${date.getFullYear()}${date.getHours()}${date.getMinutes()}${date.getSeconds()}${Math.floor(Math.random() * 10)}${files.originalname}`
 
     const uploadPromises = files.map((file) => {
+      const destinationPath = `post/create_by_${req.body.name}_${date.getDate()}${
+        date.getUTCMonth() + 1
+      }${date.getFullYear()}${date.getHours()}${date.getMinutes()}${date.getSeconds()}${Math.floor(Math.random() * 10)}${file.originalname}`
       const fileBuffer = file.buffer
       const contentType = file.mimetype
 
