@@ -4,6 +4,9 @@ const bodyParser = require('body-parser')
 const config = require('./config')
 const app = express()
 
+
+
+
 //routes
 const authRoutes = require('./routes/auth_routes')
 const tagsRoutes = require('./routes/tags_routes')
