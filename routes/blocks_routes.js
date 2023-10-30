@@ -237,14 +237,12 @@ router.post('/create', upload.array('images', 6), middleware.checkToken, async (
 
       const fileUpload = bucket.file(destinationPath)
 
-      // Create a write stream for uploading the file
       const stream = fileUpload.createWriteStream({
         metadata: {
           contentType: contentType,
         },
       })
 
-      // Handle stream events
       stream.on('error', (error) => {
         console.error('Error uploading image:', error)
         res.status(500).send('An error occurred while uploading the image.')
@@ -253,10 +251,9 @@ router.post('/create', upload.array('images', 6), middleware.checkToken, async (
       return new Promise((resolve, reject) => {
         stream.on('finish', async () => {
           try {
-            // Get the download URL of the uploaded file
             const downloadUrl = await fileUpload.getSignedUrl({
               action: 'read',
-              expires: '03-01-2500', // Set an appropriate expiration date
+              expires: '03-01-2500',
             })
 
             resolve(downloadUrl)
@@ -266,7 +263,6 @@ router.post('/create', upload.array('images', 6), middleware.checkToken, async (
           }
         })
 
-        // Start uploading the file
         stream.end(fileBuffer)
       })
     })
